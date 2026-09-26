@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: fmt, clippy, test
+    # Standard Apple Silicon image: macOS 26, arm64. macos-26-intel is x64
+    # and cannot build this project. The runner has 7 GB of RAM, so the
+    # MLX compile is limited to two jobs.
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: 2
+      CMAKE_BUILD_PARALLEL_LEVEL: 2
+    steps:
+      - uses: actions/checkout@v7
+
+      # Matches rust-version in Cargo.toml. The image's preinstalled
+      # toolchain is newer and does not satisfy that floor by itself.
+      - uses: dtolnay/rust-toolchain@1.88
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2.9.2
+
+      - name: CMake
+        run: cmake --version
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --release --bin cohere-transcribe --tests -- -D warnings
+
+      - name: Test
+        run: cargo test --release --bin cohere-transcribe

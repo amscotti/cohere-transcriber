@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  macos:
+    name: macOS Apple Silicon
+    # Same runner and toolchain as CI. macos-26 is arm64; the Intel label
+    # cannot build this project. Two compile jobs fit the 7 GB runner.
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: 2
+      CMAKE_BUILD_PARALLEL_LEVEL: 2
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@1.88
+
+      - uses: Swatinem/rust-cache@v2.9.2
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Package
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          bin=target/release/cohere-transcribe
+          metallib=target/release/mlx.metallib
+          test -x "$bin"
+          test -f "$metallib"
+          name="cohere-transcribe-${TAG}-aarch64-apple-darwin"
+          stage="${RUNNER_TEMP}/${name}"
+          mkdir -p "$stage"
+          cp "$bin" "$metallib" LICENSE NOTICE THIRD_PARTY_NOTICES.md "$stage/"
+          chmod +x "$stage/cohere-transcribe"
+          ditto -c -k --keepParent "$stage" "${RUNNER_TEMP}/${name}.zip"
+          echo "archive=${RUNNER_TEMP}/${name}.zip" >> "$GITHUB_ENV"
+
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "$archive" --clobber

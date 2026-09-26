@@ -1,0 +1,11 @@
+cohere-transcriber
+Copyright 2026 Anthony Scotti
+
+This product includes software derived from cohere_transcribe_rs
+(https://github.com/second-state/cohere_transcribe_rs),
+Copyright 2026 Second State Inc.
+
+The embedded vocab.json is derived from the tokenizer of
+CohereLabs/cohere-transcribe-03-2026.
+
+Further attributions are in THIRD_PARTY_NOTICES.md.
