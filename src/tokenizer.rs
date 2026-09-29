@@ -23,7 +23,7 @@ impl SpecialTokens {
     pub fn from_tokenizer_config(model_dir: impl AsRef<Path>) -> Result<Self> {
         let path = model_dir.as_ref().join("tokenizer_config.json");
         let content = std::fs::read_to_string(&path)
-            .with_context(|| format!("Cannot read tokenizer_config.json at {:?}", path))?;
+            .with_context(|| format!("Cannot read tokenizer_config.json at {path:?}"))?;
 
         #[derive(Deserialize)]
         struct TokenEntry {
@@ -53,7 +53,7 @@ impl SpecialTokens {
             token_to_id
                 .get(name)
                 .copied()
-                .with_context(|| format!("Special token '{}' not found", name))
+                .with_context(|| format!("Special token '{name}' not found"))
         };
 
         // Language tokens look like `<|en|>`: collect every added token of
@@ -98,7 +98,7 @@ impl SpecialTokens {
             .lang_ids
             .get(language)
             .copied()
-            .with_context(|| format!("Unsupported language: '{}'", language))?;
+            .with_context(|| format!("Unsupported language: '{language}'"))?;
         let pnc_id = if punctuation { self.pnc } else { self.nopnc };
         Ok(vec![
             self.startofcontext,
@@ -129,9 +129,8 @@ impl Vocab {
         let path = model_dir.as_ref().join("vocab.json");
         let content = std::fs::read_to_string(&path).with_context(|| {
             format!(
-                "Cannot read vocab.json at {:?}. \
-                 Re-run with a complete model directory (it is written automatically on download).",
-                path
+                "Cannot read vocab.json at {path:?}. \
+                 Re-run with a complete model directory (it is written automatically on download)."
             )
         })?;
         Self::from_json_str(&content).context("Failed to parse vocab.json")

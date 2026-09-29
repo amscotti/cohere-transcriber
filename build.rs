@@ -91,15 +91,14 @@ fn build_mlx() {
         .trim()
         .to_string();
     if std::path::Path::new(&clang_rt_path).exists() {
-        println!("cargo:rustc-link-arg={}", clang_rt_path);
+        println!("cargo:rustc-link-arg={clang_rt_path}");
     } else {
         // A silent skip here resurfaces as an obscure undefined-symbol error
         // at link time. Point the linker at clang's resource lib directory
         // and fall back to -lclang_rt.osx before giving up.
         println!(
             "cargo:warning=libclang_rt.osx.a not found via `clang --print-file-name` \
-             (got {:?}); falling back to the toolchain's resource library dir",
-            clang_rt_path
+             (got {clang_rt_path:?}); falling back to the toolchain's resource library dir"
         );
         let resource = std::process::Command::new("clang")
             .args(["--print-resource-dir"])

@@ -62,7 +62,7 @@ impl ModelConfig {
     pub fn load(model_dir: impl AsRef<Path>) -> Result<Self> {
         let path = model_dir.as_ref().join("config.json");
         let content = std::fs::read_to_string(&path)
-            .with_context(|| format!("Cannot read config.json at {:?}", path))?;
+            .with_context(|| format!("Cannot read config.json at {path:?}"))?;
         serde_json::from_str(&content).context("Failed to parse config.json")
     }
 

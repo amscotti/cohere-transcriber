@@ -73,7 +73,7 @@ impl MlxWeights {
         let path = path.as_ref();
         tracing::info!("Loading MLX weights from {:?}", path);
         let mut file = std::fs::File::open(path)
-            .with_context(|| format!("Cannot read safetensors at {:?}", path))?;
+            .with_context(|| format!("Cannot read safetensors at {path:?}"))?;
 
         // --- Parse the safetensors header ---
         let mut len_bytes = [0u8; 8];
@@ -92,12 +92,11 @@ impl MlxWeights {
 
         let data_base = 8u64 + header_len as u64;
         let file_len = std::fs::metadata(path)
-            .with_context(|| format!("Cannot stat {:?}", path))?
+            .with_context(|| format!("Cannot stat {path:?}"))?
             .len();
         anyhow::ensure!(
             data_base <= file_len,
-            "safetensors header extends past the end of {:?}",
-            path
+            "safetensors header extends past the end of {path:?}"
         );
 
         // --- Stream every tensor ---
@@ -198,7 +197,7 @@ impl MlxWeights {
     pub fn get(&self, name: &str) -> Result<&Array> {
         self.tensors
             .get(name)
-            .with_context(|| format!("Missing weight: '{}'", name))
+            .with_context(|| format!("Missing weight: '{name}'"))
     }
 
     /// A small float tensor kept on the CPU side (by exact name), if present.

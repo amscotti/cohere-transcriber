@@ -101,7 +101,7 @@ impl Array {
         } else {
             (n as i32 + axis) as usize
         };
-        assert!(idx < n, "axis {} out of range for ndim {}", axis, n);
+        assert!(idx < n, "axis {axis} out of range for ndim {n}");
         unsafe { *shape_ptr.add(idx) }
     }
 

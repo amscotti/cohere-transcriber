@@ -31,7 +31,7 @@ impl DecoderAttn {
     fn load(weights: &MlxWeights, prefix: &str, n_heads: i32, hidden: i32) -> Result<Self> {
         let head_dim = hidden / n_heads;
         let get = |n: &str| -> Result<Array> {
-            Ok(weights.get(&format!("{}{}", prefix, n))?.shallow_clone())
+            Ok(weights.get(&format!("{prefix}{n}"))?.shallow_clone())
         };
         Ok(Self {
             q_w: get("query_net.weight")?,
@@ -97,7 +97,7 @@ struct DecoderFFN {
 impl DecoderFFN {
     fn load(weights: &MlxWeights, prefix: &str) -> Result<Self> {
         let get = |n: &str| -> Result<Array> {
-            Ok(weights.get(&format!("{}{}", prefix, n))?.shallow_clone())
+            Ok(weights.get(&format!("{prefix}{n}"))?.shallow_clone())
         };
         Ok(Self {
             dense_in_w: get("dense_in.weight")?,
@@ -128,28 +128,28 @@ pub struct DecoderLayer {
 impl DecoderLayer {
     fn load(weights: &MlxWeights, prefix: &str, n_heads: i32, hidden: i32) -> Result<Self> {
         let norm = |n: &str| -> Result<(Array, Array)> {
-            let key = format!("{}{}", prefix, n);
-            let w = weights.get(&format!("{}.weight", key))?.shallow_clone();
-            let b = weights.get(&format!("{}.bias", key))?.shallow_clone();
+            let key = format!("{prefix}{n}");
+            let w = weights.get(&format!("{key}.weight"))?.shallow_clone();
+            let b = weights.get(&format!("{key}.bias"))?.shallow_clone();
             Ok((w, b))
         };
         Ok(Self {
             norm1: norm("layer_norm_1")?,
             self_attn: DecoderAttn::load(
                 weights,
-                &format!("{}first_sub_layer.", prefix),
+                &format!("{prefix}first_sub_layer."),
                 n_heads,
                 hidden,
             )?,
             norm2: norm("layer_norm_2")?,
             cross_attn: DecoderAttn::load(
                 weights,
-                &format!("{}second_sub_layer.", prefix),
+                &format!("{prefix}second_sub_layer."),
                 n_heads,
                 hidden,
             )?,
             norm3: norm("layer_norm_3")?,
-            ffn: DecoderFFN::load(weights, &format!("{}third_sub_layer.", prefix))?,
+            ffn: DecoderFFN::load(weights, &format!("{prefix}third_sub_layer."))?,
         })
     }
 
@@ -217,7 +217,7 @@ impl FixedPosEnc {
     fn load(weights: &MlxWeights, prefix: &str) -> Result<Self> {
         Ok(Self {
             pos_enc: weights
-                .get(&format!("{}position_embedding.pos_enc", prefix))?
+                .get(&format!("{prefix}position_embedding.pos_enc"))?
                 .shallow_clone(),
         })
     }
@@ -260,27 +260,27 @@ impl TransformerDecoder {
         let dec_prefix = "transf_decoder._decoder.";
 
         let token_emb = weights
-            .get(&format!("{}token_embedding.weight", emb_prefix))?
+            .get(&format!("{emb_prefix}token_embedding.weight"))?
             .shallow_clone();
         let pos_enc = FixedPosEnc::load(weights, emb_prefix)?;
         let emb_norm_w = weights
-            .get(&format!("{}layer_norm.weight", emb_prefix))?
+            .get(&format!("{emb_prefix}layer_norm.weight"))?
             .shallow_clone();
         let emb_norm_b = weights
-            .get(&format!("{}layer_norm.bias", emb_prefix))?
+            .get(&format!("{emb_prefix}layer_norm.bias"))?
             .shallow_clone();
 
         let mut layers = Vec::with_capacity(dec.num_layers);
         for i in 0..dec.num_layers {
-            let prefix = format!("{}layers.{}.", dec_prefix, i);
+            let prefix = format!("{dec_prefix}layers.{i}.");
             layers.push(DecoderLayer::load(weights, &prefix, n_heads, hidden)?);
         }
 
         let final_ln_w = weights
-            .get(&format!("{}final_layer_norm.weight", dec_prefix))?
+            .get(&format!("{dec_prefix}final_layer_norm.weight"))?
             .shallow_clone();
         let final_ln_b = weights
-            .get(&format!("{}final_layer_norm.bias", dec_prefix))?
+            .get(&format!("{dec_prefix}final_layer_norm.bias"))?
             .shallow_clone();
         let head_w = weights
             .get("log_softmax.mlp.layer0.weight")?

@@ -52,7 +52,7 @@ struct ConvSubsampling {
 impl ConvSubsampling {
     fn load(weights: &MlxWeights, prefix: &str) -> Result<Self> {
         let get = |n: &str| -> Result<Array> {
-            Ok(weights.get(&format!("{}{}", prefix, n))?.shallow_clone())
+            Ok(weights.get(&format!("{prefix}{n}"))?.shallow_clone())
         };
         let c2_w = pt_conv2d_to_mlx(get("conv.2.weight")?);
         let c5_w = pt_conv2d_to_mlx(get("conv.5.weight")?);
@@ -234,7 +234,7 @@ struct FeedForward {
 impl FeedForward {
     fn load(weights: &MlxWeights, prefix: &str) -> Result<Self> {
         let get = |n: &str| -> Result<Array> {
-            Ok(weights.get(&format!("{}{}", prefix, n))?.shallow_clone())
+            Ok(weights.get(&format!("{prefix}{n}"))?.shallow_clone())
         };
         Ok(Self {
             l1_w: get("linear1.weight")?,
@@ -275,7 +275,7 @@ struct ConformerConv {
 impl ConformerConv {
     fn load(weights: &MlxWeights, prefix: &str, d_model: i32) -> Result<Self> {
         let get = |n: &str| -> Result<Array> {
-            Ok(weights.get(&format!("{}{}", prefix, n))?.shallow_clone())
+            Ok(weights.get(&format!("{prefix}{n}"))?.shallow_clone())
         };
         Ok(Self {
             pw1_w: pt_conv1d_to_mlx(get("pointwise_conv1.weight")?),
@@ -398,7 +398,7 @@ impl RelPosAttn {
     fn load(weights: &MlxWeights, prefix: &str, n_heads: i32, d_model: i32) -> Result<Self> {
         let d_k = d_model / n_heads;
         let get = |n: &str| -> Result<Array> {
-            Ok(weights.get(&format!("{}{}", prefix, n))?.shallow_clone())
+            Ok(weights.get(&format!("{prefix}{n}"))?.shallow_clone())
         };
         Ok(Self {
             q_w: get("linear_q.weight")?,
@@ -540,25 +540,20 @@ struct ConformerLayer {
 impl ConformerLayer {
     fn load(weights: &MlxWeights, prefix: &str, n_heads: i32, d_model: i32) -> Result<Self> {
         let norm = |n: &str| -> Result<(Array, Array)> {
-            let key = format!("{}{}", prefix, n);
-            let w = weights.get(&format!("{}.weight", key))?.shallow_clone();
-            let b = weights.get(&format!("{}.bias", key))?.shallow_clone();
+            let key = format!("{prefix}{n}");
+            let w = weights.get(&format!("{key}.weight"))?.shallow_clone();
+            let b = weights.get(&format!("{key}.bias"))?.shallow_clone();
             Ok((w, b))
         };
         Ok(Self {
             norm_ff1: norm("norm_feed_forward1")?,
-            ff1: FeedForward::load(weights, &format!("{}feed_forward1.", prefix))?,
+            ff1: FeedForward::load(weights, &format!("{prefix}feed_forward1."))?,
             norm_self_att: norm("norm_self_att")?,
-            self_attn: RelPosAttn::load(
-                weights,
-                &format!("{}self_attn.", prefix),
-                n_heads,
-                d_model,
-            )?,
+            self_attn: RelPosAttn::load(weights, &format!("{prefix}self_attn."), n_heads, d_model)?,
             norm_conv: norm("norm_conv")?,
-            conv: ConformerConv::load(weights, &format!("{}conv.", prefix), d_model)?,
+            conv: ConformerConv::load(weights, &format!("{prefix}conv."), d_model)?,
             norm_ff2: norm("norm_feed_forward2")?,
-            ff2: FeedForward::load(weights, &format!("{}feed_forward2.", prefix))?,
+            ff2: FeedForward::load(weights, &format!("{prefix}feed_forward2."))?,
             norm_out: norm("norm_out")?,
         })
     }
@@ -616,9 +611,9 @@ impl ConformerEncoder {
 
         let mut layers = Vec::with_capacity(enc.n_layers);
         for i in 0..enc.n_layers {
-            let prefix = format!("encoder.layers.{}.", i);
+            let prefix = format!("encoder.layers.{i}.");
             let layer = ConformerLayer::load(weights, &prefix, n_heads, d_model)
-                .with_context(|| format!("Loading ConformerLayer {}", i))?;
+                .with_context(|| format!("Loading ConformerLayer {i}"))?;
             layers.push(layer);
         }
 

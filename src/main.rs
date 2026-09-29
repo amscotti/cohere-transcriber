@@ -53,9 +53,7 @@ fn validate_model_dir(model_dir: &Path) -> Result<()> {
     for required in REQUIRED_MODEL_FILES {
         anyhow::ensure!(
             model_dir.join(required).exists(),
-            "Missing required file '{}' in {:?}",
-            required,
-            model_dir
+            "Missing required file '{required}' in {model_dir:?}"
         );
     }
     Ok(())
@@ -239,7 +237,7 @@ fn run(args: Args) -> Result<()> {
                 audio_path.display()
             );
         }
-        println!("{}", transcript);
+        println!("{transcript}");
     }
     Ok(())
 }
@@ -311,7 +309,7 @@ fn process_audio(
 ) -> Result<String> {
     tracing::info!("Loading audio: {:?}", audio_path);
     let samples = audio::load_audio(audio_path, ctx.mel_cfg.sample_rate)
-        .with_context(|| format!("Failed to load audio: {:?}", audio_path))?;
+        .with_context(|| format!("Failed to load audio: {audio_path:?}"))?;
 
     tracing::info!(
         "Audio loaded: {} samples ({:.2}s)",
@@ -328,7 +326,7 @@ fn process_audio(
         "overlap_chunk_second ({overlap_s}) must be in [0, max_audio_clip_s ({max_clip_s}))"
     );
     if samples.is_empty() {
-        anyhow::bail!("Empty audio: {:?}", audio_path);
+        anyhow::bail!("Empty audio: {audio_path:?}");
     }
 
     // Chunking follows the model's preprocessing pipeline: clips up to
